@@ -315,8 +315,13 @@ const cfgModel = document.getElementById('cfg-model') as HTMLInputElement;
 const cfgApiKey = document.getElementById('cfg-api-key') as HTMLInputElement;
 const cfgApiKeyState = document.getElementById('cfg-api-key-state') as HTMLSpanElement;
 const cfgEffort = document.getElementById('cfg-effort') as HTMLSelectElement;
+const cfgTemp = document.getElementById('cfg-temp') as HTMLInputElement;
+const cfgTempValue = document.getElementById('cfg-temp-value') as HTMLSpanElement;
+const cfgTokens = document.getElementById('cfg-tokens') as HTMLSelectElement;
 const cfgPersona = document.getElementById('cfg-persona') as HTMLInputElement;
 const cfgSave = document.getElementById('cfg-save') as HTMLButtonElement;
+// 拖动温度滑条时实时显示数值
+cfgTemp.addEventListener('input', () => { cfgTempValue.textContent = Number(cfgTemp.value).toFixed(2); });
 const cfgSaveHint = document.getElementById('cfg-save-hint') as HTMLSpanElement;
 
 let chatBusy = false;
@@ -516,6 +521,17 @@ async function loadCompanionConfig(): Promise<void> {
     cfgBaseUrl.value = config.baseUrl;
     cfgModel.value = config.model;
     cfgEffort.value = config.reasoningEffort;
+    // 温度与回复长度：聊天方式调节（降智/发散/啰嗦程度）
+    if (typeof config.temperature === 'number') {
+      cfgTemp.value = String(config.temperature);
+      cfgTempValue.textContent = String(config.temperature);
+    }
+    if (typeof config.maxTokens === 'number') {
+      // 非预设值时落到最接近的档位显示
+      const tiers = [320, 640, 1024, 2048];
+      const nearest = tiers.reduce((best, tier) => (Math.abs(tier - config.maxTokens!) < Math.abs(best - config.maxTokens!) ? tier : best), 640);
+      cfgTokens.value = String(nearest);
+    }
     cfgPersona.value = config.personaExtra;
     cfgApiKey.value = '';
     cfgApiKeyState.textContent = config.apiKeySet ? '（已设置，留空不改）' : '（未设置）';
@@ -588,6 +604,8 @@ cfgSave.addEventListener('click', async () => {
       baseUrl: cfgBaseUrl.value.trim(),
       model: cfgModel.value.trim(),
       reasoningEffort: cfgEffort.value,
+      temperature: Number(cfgTemp.value),
+      maxTokens: Number(cfgTokens.value),
       personaExtra: cfgPersona.value.trim(),
     };
     if (cfgApiKey.value.trim()) patch.apiKey = cfgApiKey.value.trim();

@@ -884,11 +884,25 @@
               <input id="cfg-api-key" type="password" placeholder="留空表示不修改">
             </div>
             <div class="companion-field">
-              <label for="cfg-effort">思考强度</label>
+              <label for="cfg-effort">思考强度（降智档在最左）</label>
               <select id="cfg-effort">
+                <option value="">off · 关闭思考（最省最直）</option>
                 <option value="low">low · 快速省钱</option>
                 <option value="high">high · 均衡</option>
                 <option value="max">max · 最强推理</option>
+              </select>
+            </div>
+            <div class="companion-field">
+              <label for="cfg-temp">说话发散度（温度 <span id="cfg-temp-value">0.85</span>）</label>
+              <input id="cfg-temp" type="range" min="0" max="2" step="0.05" value="0.85">
+            </div>
+            <div class="companion-field">
+              <label for="cfg-tokens">回复长度上限</label>
+              <select id="cfg-tokens">
+                <option value="320">320 · 简短（闲聊最省）</option>
+                <option value="640">640 · 标准</option>
+                <option value="1024">1024 · 详细</option>
+                <option value="2048">2048 · 长篇</option>
               </select>
             </div>
             <div class="companion-field">
