@@ -1,0 +1,191 @@
+{
+  "builder": "doubao-desktop-pet-builder",
+  "templateContractVersion": 5,
+  "specSchemaVersion": 5,
+  "criticalFileHashes": {
+    "forge.config.js": "8730b904dca6909e635b353c439b2da7ceadaae9683d302a1cc17be1e76ead83",
+    "webpack.renderer.config.js": "f0cbfe9f4f805126d0dd854b4024df83b2d08c2d67145ecae6bc29e5268ddda1",
+    "src/main.ts": "a83cb6f025c584dc70cb78d27130862e2cea024b0c36d21eda11d37c5540076f",
+    "src/preload.ts": "b468082010e3c6660fe1b9b47e4842740659cae6292958c1dcd2ba13fb4bf254",
+    "src/main/data-validation.ts": "b718a4e4648109c5c1f6d054221e5d7f010bf40bf68f98adfbafdd58d3a0baa8",
+    "src/renderer/pet/state-machine.ts": "c361129351654bce7fb593152e0ff936df8aa5e9f1f2e06ce9fc7a1beffa49d3",
+    "tools/collect-release.mjs": "50d78bbd41b5a8d2435fc3bdf77359ee10a908379b5918ccb4b83dc27d0c78d7",
+    "tools/process-assets.mjs": "b250726741cc1cd68127ad989b5c925be8a7338c62a98efaf20464a2166671e4",
+    "tools/qa-assets.mjs": "d8aeaa1810da1499db89e39c00a29336587d27c2ad828d97f7bf34f4c14be980",
+    "tools/run-build.mjs": "8f9f44e36834c4d2b1477ca73dc81a60991d8eb3ce45dfbbfb5bfcaa1ffebebe",
+    "tools/run-dev.mjs": "17850e7ad9c0abe0866d8164c2e2d1d301418ea697c3282fd45ce9afbcea81f7",
+    "tools/dev-smoke-client.mjs": "a2640ab83d5f28e46fd6a43db187f37fc333f32513068affb03b5aa93d91e437",
+    "tools/validate-dev-contract.mjs": "65a35e1bc95525080d790e7c3b37273ecbe3db1c20b6bda345ca1764651ee347",
+    "tools/preflight.mjs": "6610db5da77d9bc221f11cbbb0ef74b4474ce2e77e02ed0a2fe37fd778ec8d7b",
+    "tools/dev-ports.mjs": "33c3f354450ee0b4454117a3eba544e0e89f351c2a3656aeffe4ab9c0a4f2275",
+    "tools/doctor.mjs": "2f79b020df8f71522d735802c1095f104e6438fe7b2629ebb6fd99dcf2f0d565",
+    "tools/inspect-assets.mjs": "2b70044609d3868913ec0db7ba69470078d843fcfa5e7b7a9cabfbbc9e67f5a5",
+    "package.json": "948dad2c19a98da67c41211081e3bbd18bb3f1a83d31b61b657a198003aeadfe",
+    "package-lock.json": "157ae602ca3002ce66c5ecf7013c769daa4068639c15c1efdc437517f002d481",
+    "src/shared/contracts.ts": "4245d195177665657e64f03e74717578892c7fd53a5fc16a43f18f8b02703394",
+    "src/renderer/pet/index.ts": "4642df85559673e977db98ef92bbd64804e1a34e869b1aa201ac0e32d406ad0f",
+    "tests/e2e/app.e2e.ts": "549b49b032dc04bec78267f5dd8e4d31fd73bd0b5d2ad424fa9bdb0f11789ff4",
+    "tools/semantic-cutout.mjs": "4bec63f395adb94209e0d79f3f6f6fd7ad4050a77fffc3106ba56cbfb7177480",
+    "tools/vision-cutout.swift": "47cd7606dde925be36d2f053265c95070a4d75d0b63b516825a15bf0045a6cdf",
+    "tools/validate-spec.mjs": "4d38bbf46c0f4ece77d26e1ca0834b6bc3406ab70babb3eae8477071ed8a1f4a",
+    "tools/validate-asset-links.mjs": "f4af80b3fb2ea9a5050b97cfbb71b83281d9685960c5d828bcda41f5128450c4",
+    "tools/qa-ui.mjs": "2fc8417689023714595de148ba9fb8de73ea5b0648ef97c69efe55977995324f",
+    "tools/qa-experience.mjs": "580d5f83aa4dac97cc568b3b340407f7cef426875be03f3dde596c4021a11300"
+  },
+  "migrationLog": [
+    {
+      "id": "mig-1792807956077",
+      "timestamp": "2026-10-24T02:12:45.872Z",
+      "reason": "修复聊天入口缺失：补回 preload 桥与 pet 窗口订阅、心跳气泡延长、右键/托盘菜单加显式入口、onFocusChat 桥",
+      "files": [
+        "src/main.ts",
+        "src/preload.ts",
+        "src/shared/contracts.ts",
+        "src/renderer/pet/index.ts",
+        "package.json"
+      ],
+      "previousHashes": {
+        "src/main.ts": "8b11d2f4dca35a9e867ec35baadce018a7294d69b3e396d00e1bbaa80d4be502",
+        "src/preload.ts": "5f644a464ffd4c12666903eef6909569d83c593132dbb75b89e6f06b2f98b06c",
+        "src/shared/contracts.ts": "efaa21dfd2a6a0207a85001f4cc9434477ecd881cb07a11cca54f1ccfce09252",
+        "src/renderer/pet/index.ts": "707a590cefd9a6d32b48e1f66d335d3361182848a2c214e36893f308ca2fcf05",
+        "package.json": "09046960a79ad5cc369aa4586d1e097ba5da60fc55434a3765bed7ea000001bd"
+      },
+      "backup": ".template-migration-backup\\mig-1792807956077"
+    },
+    {
+      "id": "mig-1792808622403",
+      "timestamp": "2026-10-24T02:23:42.576Z",
+      "reason": "纳入心跳显示测试与完整性回归测试",
+      "files": [
+        "package.json"
+      ],
+      "previousHashes": {
+        "package.json": "09046960a79ad5cc369aa4586d1e097ba5da60fc55434a3765bed7ea000001bd"
+      },
+      "backup": ".template-migration-backup\\mig-1792808622403"
+    },
+    {
+      "id": "mig-1792809804368",
+      "timestamp": "2026-10-24T02:43:24.562Z",
+      "reason": "纳入聊天 UI 完整性测试",
+      "files": [
+        "package.json"
+      ],
+      "previousHashes": {
+        "package.json": "ae4d75d21271e31bc163eb0ef7be3814a6657809b266116960ab1058b97e10ca"
+      },
+      "backup": ".template-migration-backup\\mig-1792809804368"
+    },
+    {
+      "id": "mig-1792811023711",
+      "timestamp": "2026-10-24T03:03:43.913Z",
+      "reason": "纳入滚动布局回归测试",
+      "files": [
+        "package.json"
+      ],
+      "previousHashes": {
+        "package.json": "2824a34b88e81e9f3d299f1c167f9de38c6406589067f316d529075f2ef07542"
+      },
+      "backup": ".template-migration-backup\\mig-1792811023711"
+    },
+    {
+      "id": "mig-1792898540574",
+      "timestamp": "2026-10-25T03:22:38.035Z",
+      "reason": "为 exe 内嵌应用图标（build/icon.ico），修复桌面快捷方式显示系统默认空白文档图标的问题",
+      "files": [
+        "forge.config.js"
+      ],
+      "previousHashes": {
+        "forge.config.js": "855b31f685975f1b5bca03c3f9eede85ad3e95e9fc0650a57a9d7ef080331c33"
+      },
+      "backup": ".template-migration-backup\\mig-1792898540574"
+    },
+    {
+      "id": "mig-1792901017762",
+      "timestamp": "2026-10-25T04:07:27.317Z",
+      "reason": "CompanionState 扩展三轴好感度字段（energy/trust/intimacyGainedToday/lastGainDate）并加入图标工具命令入口",
+      "files": [
+        "src/shared/contracts.ts",
+        "package.json"
+      ],
+      "previousHashes": {
+        "src/shared/contracts.ts": "764b863d31c07000e196c80c7b092ab9d19b5bcfec87c41bc64a009a73937a65",
+        "package.json": "df82279f605f3f313dd838c1d6c66057a0005900647d1c930733cb7cd0b25b0a"
+      },
+      "backup": ".template-migration-backup\\mig-1792901017762"
+    },
+    {
+      "id": "mig-1792901252244",
+      "timestamp": "2026-10-25T04:10:09.179Z",
+      "reason": "CompanionEngine 注入 JsonLogger，好感度阶段变化与心跳结算写入结构化日志",
+      "files": [
+        "src/main.ts"
+      ],
+      "previousHashes": {
+        "src/main.ts": "ffa5c50489bc8c6dbd13f097ebd173f5b182a18482e39f7a72b081c5773b2102"
+      },
+      "backup": ".template-migration-backup\\mig-1792901252244"
+    },
+    {
+      "id": "mig-1792901409313",
+      "timestamp": "2026-10-25T04:17:36.791Z",
+      "reason": "PetSpec.character 增加 speechExamples 字段，用于人设样例化（给例子而非只给形容词）",
+      "files": [
+        "src/shared/contracts.ts"
+      ],
+      "previousHashes": {
+        "src/shared/contracts.ts": "babcb51b6c919d975211af958a4ad6667bbebb9d396972e253c9276d4051eb0d"
+      },
+      "backup": ".template-migration-backup\\mig-1792901409313"
+    },
+    {
+      "id": "mig-1792901863074",
+      "timestamp": "2026-10-25T04:17:43.206Z",
+      "reason": "package.json 的 test 脚本加入 budget.test.ts 与 affinity.test.ts 两个新测试文件",
+      "files": [
+        "package.json"
+      ],
+      "previousHashes": {
+        "package.json": "2b4e22eb760e143bc59a47c558b1bef0433772adc604c7c621e448a42087bda2"
+      },
+      "backup": ".template-migration-backup\\mig-1792901863074"
+    },
+    {
+      "id": "mig-1792902497874",
+      "timestamp": "2026-10-25T04:28:18.016Z",
+      "reason": "package.json test 脚本加入 relation-ui.test.ts",
+      "files": [
+        "package.json"
+      ],
+      "previousHashes": {
+        "package.json": "8096c6ae689350a670616042e45651c56b17ec79f0e15379a335f8c9b2b0a00e"
+      },
+      "backup": ".template-migration-backup\\mig-1792902497874"
+    },
+    {
+      "id": "mig-1792904841368",
+      "timestamp": "2026-10-25T05:31:37.665Z",
+      "reason": "接入本机 DSH 桥接自动发现：未配置 API Key 时自动探测本地 OpenAI 兼容端点，用 Trae 免费额度",
+      "files": [
+        "src/main.ts"
+      ],
+      "previousHashes": {
+        "src/main.ts": "81a4e6c365c377da91705b1ca6c6428433c11a0cfead0e7131dd6f35b3fda990"
+      },
+      "backup": ".template-migration-backup\\mig-1792904841368"
+    },
+    {
+      "id": "mig-1792906305068",
+      "timestamp": "2026-10-25T05:31:45.169Z",
+      "reason": "package.json test 脚本加入 sse.test.ts 与 bridge.test.ts",
+      "files": [
+        "package.json"
+      ],
+      "previousHashes": {
+        "package.json": "2344fb2baac586211410d93b57ee6cfb72f7d0cc891ddfecc706216f760d3450"
+      },
+      "backup": ".template-migration-backup\\mig-1792906305068"
+    }
+  ]
+}

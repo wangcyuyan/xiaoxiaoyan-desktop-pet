@@ -1,0 +1,946 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline';">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>桌宠小屋</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    html, body {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: transparent;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    }
+    #dashboard {
+      width: 100%;
+      height: 100%;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      min-height: 0;
+    }
+    .card {
+      background: var(--surface, #ffffff);
+      border-radius: var(--radius, 24px);
+      padding: 20px;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.12);
+      /* flex 子项默认 min-height:auto 会被内容撑高，
+         必须显式归零，内部的 .content-scroll 才能真正滚动 */
+      min-height: 0;
+      overflow: hidden;
+    }
+    .header {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      margin-bottom: 14px;
+      flex-shrink: 0;
+    }
+    .pet-avatar {
+      width: 54px;
+      height: 54px;
+      border-radius: 50%;
+      overflow: hidden;
+      background: var(--background, #fff7ed);
+      flex-shrink: 0;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    .pet-avatar img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      object-position: center top;
+      display: block;
+    }
+    .pet-info h2 {
+      font-size: 20px;
+      font-weight: 600;
+      color: var(--text, #3a2a20);
+      margin-bottom: 4px;
+    }
+    .pet-info p {
+      font-size: 13px;
+      color: var(--muted, #9a7b6a);
+    }
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 10px;
+      margin-bottom: 14px;
+      flex-shrink: 0;
+    }
+    .stat-item {
+      background: var(--background, #fff7ed);
+      border-radius: 16px;
+      padding: 11px 14px;
+    }
+    /* 关系阶段称号：贴在好感度数字下面 */
+    .stat-tier {
+      margin-top: 3px;
+      font-size: 11px;
+      color: var(--primary, #ff8a24);
+      font-weight: 500;
+      letter-spacing: 0.4px;
+    }
+    /* 三轴关系条：让用户看见关系是多个维度在动，不是一个数字 */
+    .relation-bars {
+      background: var(--background, #fff7ed);
+      border-radius: 16px;
+      padding: 12px 14px;
+      margin-bottom: 14px;
+      flex-shrink: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 7px;
+    }
+    .relation-bar {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+    }
+    .relation-name {
+      font-size: 11px;
+      color: var(--muted, #9a7b6a);
+      width: 30px;
+      flex-shrink: 0;
+    }
+    .relation-track {
+      flex: 1;
+      height: 6px;
+      border-radius: 3px;
+      background: rgba(0, 0, 0, 0.06);
+      overflow: hidden;
+      min-width: 0;
+    }
+    .relation-fill {
+      height: 100%;
+      width: 0;
+      border-radius: 3px;
+      background: linear-gradient(90deg, #ff8a24, #ff6b9d);
+      transition: width 0.35s ease;
+    }
+    .relation-fill.energy {
+      background: linear-gradient(90deg, #4caf50, #8bc34a);
+    }
+    .relation-fill.trust {
+      background: linear-gradient(90deg, #5b8cff, #7c6bff);
+    }
+    .relation-num {
+      font-size: 11px;
+      color: var(--muted, #9a7b6a);
+      width: 22px;
+      text-align: right;
+      flex-shrink: 0;
+      font-variant-numeric: tabular-nums;
+    }
+    .relation-note {
+      font-size: 11px;
+      color: var(--muted, #9a7b6a);
+      margin-top: 2px;
+      line-height: 1.5;
+    }
+    .stat-label {
+      font-size: 12px;
+      color: var(--muted, #9a7b6a);
+      margin-bottom: 6px;
+    }
+    .stat-value {
+      font-size: 20px;
+      font-weight: 600;
+      color: var(--text, #3a2a20);
+    }
+    .stat-value small {
+      font-size: 12px;
+      font-weight: normal;
+      color: var(--muted, #9a7b6a);
+    }
+    .section-title {
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--text, #3a2a20);
+      margin-bottom: 12px;
+    }
+    .interactions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 16px;
+    }
+    .interaction-btn {
+      padding: 10px 16px;
+      border: none;
+      border-radius: 12px;
+      background: var(--background, #fff7ed);
+      color: var(--text, #3a2a20);
+      font-size: 14px;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .interaction-btn:hover {
+      background: var(--accent, #ffc987);
+      transform: translateY(-1px);
+    }
+    .settings-group {
+      margin-bottom: 16px;
+    }
+    .setting-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 0;
+      border-bottom: 1px solid var(--background, #fff7ed);
+    }
+    .setting-item:last-child {
+      border-bottom: none;
+    }
+    .setting-label {
+      font-size: 14px;
+      color: var(--text, #3a2a20);
+    }
+    .setting-desc {
+      font-size: 12px;
+      color: var(--muted, #9a7b6a);
+    }
+    .toggle {
+      position: relative;
+      width: 44px;
+      height: 24px;
+      background: var(--muted, #9a7b6a);
+      border-radius: 12px;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .toggle.active {
+      background: var(--primary, #ff8a24);
+    }
+    .toggle::after {
+      content: '';
+      position: absolute;
+      top: 2px;
+      left: 2px;
+      width: 20px;
+      height: 20px;
+      background: white;
+      border-radius: 50%;
+      transition: transform 0.2s;
+    }
+    .toggle.active::after {
+      transform: translateX(20px);
+    }
+    .size-selector {
+      display: flex;
+      gap: 8px;
+    }
+    .size-btn {
+      padding: 6px 12px;
+      border: 1px solid var(--accent, #ffc987);
+      border-radius: 8px;
+      background: transparent;
+      color: var(--text, #3a2a20);
+      font-size: 12px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .size-btn.active {
+      background: var(--primary, #ff8a24);
+      border-color: var(--primary, #ff8a24);
+      color: white;
+    }
+    .close-btn {
+      position: absolute;
+      top: 16px;
+      right: 16px;
+      width: 32px;
+      height: 32px;
+      border: none;
+      background: var(--background, #fff7ed);
+      border-radius: 50%;
+      color: var(--muted, #9a7b6a);
+      font-size: 18px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s;
+    }
+    .close-btn:hover {
+      background: var(--accent, #ffc987);
+      color: var(--text, #3a2a20);
+    }
+    .content-scroll {
+      flex: 1;
+      min-height: 0;
+      height: 0;
+      overflow-y: scroll;
+      overflow-x: hidden;
+      padding-right: 6px;
+      overscroll-behavior: contain;
+      touch-action: pan-y;
+    }
+    .content-scroll::-webkit-scrollbar {
+      width: 6px;
+    }
+    .content-scroll::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    .content-scroll::-webkit-scrollbar-thumb {
+      background: var(--accent, #ffc987);
+      border-radius: 3px;
+    }
+    .content-scroll::-webkit-scrollbar-thumb:hover {
+      background: var(--primary, #ff8a24);
+    }
+    /* ---------- 伴侣聊天（主功能，占据视觉主体） ---------- */
+    .chat-panel {
+      display: flex;
+      flex-direction: column;
+      background: var(--background, #fff7ed);
+      border-radius: 16px;
+      padding: 14px;
+      margin-bottom: 18px;
+      /* 注意：父级 .content-scroll 是普通滚动容器（不是 flex），
+         这里的 flex:1 不生效，必须用明确的高度。
+         记录区 .chat-log 再用 flex:1 在面板内部自适应。 */
+      height: 380px;
+    }
+    .chat-panel-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding-bottom: 10px;
+      border-bottom: 1px solid rgba(0,0,0,0.06);
+      margin-bottom: 10px;
+      flex-shrink: 0;
+    }
+    .chat-head-left {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      min-width: 0;
+    }
+    .chat-avatar-wrap {
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      overflow: hidden;
+      background: var(--surface, #fff);
+      flex-shrink: 0;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+    }
+    .chat-avatar {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      object-position: center top;
+      display: block;
+    }
+    .chat-head-info {
+      min-width: 0;
+    }
+    .chat-head-name {
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--text, #3a2a20);
+      margin-bottom: 2px;
+    }
+    .chat-head-metrics {
+      display: flex;
+      gap: 14px;
+      flex-shrink: 0;
+    }
+    .chat-metric {
+      text-align: center;
+    }
+    .chat-metric-value {
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--primary, #ff8a24);
+      line-height: 1.2;
+    }
+    .chat-metric-label {
+      font-size: 10px;
+      color: var(--muted, #9a7b6a);
+      margin-top: 1px;
+    }
+    .chat-log {
+      flex: 1 1 auto;
+      /* 记录区在 380px 面板里自适应：
+         min-height 保证不塌成一条缝，overflow-y 让超长内容内部滚动，
+         不撑破外层面板。 */
+      min-height: 140px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      padding: 2px 4px 2px 0;
+    }
+    .chat-empty {
+      flex: 1 1 auto;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 16px 12px;
+      gap: 6px;
+    }
+    .chat-empty-emoji {
+      font-size: 34px;
+      opacity: 0.65;
+    }
+    .chat-empty-title {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text, #3a2a20);
+    }
+    .chat-empty-desc {
+      font-size: 12px;
+      color: var(--muted, #9a7b6a);
+      line-height: 1.5;
+      margin-bottom: 6px;
+    }
+    .chat-suggestions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      justify-content: center;
+    }
+    .chat-suggestion {
+      border: 1px solid var(--accent, #ffc987);
+      background: var(--surface, #fff);
+      color: var(--text, #3a2a20);
+      border-radius: 999px;
+      padding: 6px 12px;
+      font-size: 12px;
+      cursor: pointer;
+      font-family: inherit;
+      transition: all 0.15s;
+    }
+    .chat-suggestion:hover {
+      background: var(--accent, #ffc987);
+      transform: translateY(-1px);
+    }
+    /* ---------- 未配置 Key 的引导卡片 ---------- */
+    .key-gate {
+      background: linear-gradient(135deg, var(--background, #fff7ed), var(--surface, #fff));
+      border: 1px dashed var(--accent, #ffc987);
+      border-radius: 16px;
+      padding: 18px 16px;
+      margin-bottom: 16px;
+      text-align: center;
+      flex-shrink: 0;
+    }
+    .key-gate[hidden] {
+      display: none;
+    }
+    .key-gate-icon {
+      font-size: 30px;
+      margin-bottom: 8px;
+    }
+    .key-gate-title {
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--text, #3a2a20);
+      margin-bottom: 6px;
+    }
+    .key-gate-desc {
+      font-size: 12px;
+      color: var(--muted, #9a7b6a);
+      line-height: 1.6;
+      margin-bottom: 14px;
+    }
+    .key-gate-actions {
+      display: flex;
+      gap: 8px;
+      justify-content: center;
+    }
+    .key-gate-btn {
+      border: 1px solid var(--accent, #ffc987);
+      background: var(--surface, #fff);
+      color: var(--text, #3a2a20);
+      border-radius: 10px;
+      padding: 8px 16px;
+      font-size: 13px;
+      cursor: pointer;
+      font-family: inherit;
+      transition: all 0.15s;
+    }
+    .key-gate-btn:hover {
+      background: var(--accent, #ffc987);
+    }
+    .key-gate-btn.primary {
+      background: var(--primary, #ff8a24);
+      border-color: var(--primary, #ff8a24);
+      color: #fff;
+    }
+    .key-gate-btn.primary:hover {
+      filter: brightness(1.06);
+    }
+    .key-gate-hint {
+      margin-top: 12px;
+      font-size: 11px;
+      color: var(--muted, #9a7b6a);
+      line-height: 1.6;
+      background: var(--surface, #fff);
+      border-radius: 8px;
+      padding: 8px 10px;
+      text-align: left;
+    }
+    .key-gate-hint[hidden] {
+      display: none;
+    }
+    .key-gate-hint code {
+      background: var(--background, #fff7ed);
+      padding: 1px 5px;
+      border-radius: 4px;
+      font-size: 11px;
+    }
+    .section-title.clickable {
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      user-select: none;
+    }
+    .toggle-arrow {
+      font-size: 12px;
+      color: var(--muted, #9a7b6a);
+      transition: transform 0.2s;
+    }
+    .toggle-arrow.collapsed {
+      transform: rotate(-90deg);
+    }
+    .companion-form.collapsed {
+      display: none;
+    }
+    .chat-log::-webkit-scrollbar {
+      width: 4px;
+    }
+    .chat-log::-webkit-scrollbar-thumb {
+      background: var(--accent, #ffc987);
+      border-radius: 2px;
+    }
+    .chat-bubble {
+      max-width: 82%;
+      padding: 8px 12px;
+      border-radius: 14px;
+      font-size: 13px;
+      line-height: 1.5;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+    .chat-bubble.user {
+      align-self: flex-end;
+      background: var(--primary, #ff8a24);
+      color: #fff;
+      border-bottom-right-radius: 4px;
+    }
+    .chat-bubble.assistant {
+      align-self: flex-start;
+      background: var(--background, #fff7ed);
+      color: var(--text, #3a2a20);
+      border-bottom-left-radius: 4px;
+    }
+    .chat-bubble .chat-meta {
+      display: block;
+      font-size: 10px;
+      opacity: 0.7;
+      margin-top: 3px;
+    }
+    .chat-input-row {
+      display: flex;
+      gap: 8px;
+      align-items: flex-end;
+      flex-shrink: 0;
+      padding-top: 8px;
+    }
+    .chat-input-row textarea {
+      flex: 1;
+      min-height: 38px;
+      max-height: 96px;
+      resize: none;
+      border: 1px solid var(--accent, #ffc987);
+      border-radius: 12px;
+      padding: 9px 12px;
+      font-size: 13px;
+      font-family: inherit;
+      color: var(--text, #3a2a20);
+      background: var(--background, #fff7ed);
+      outline: none;
+    }
+    .chat-input-row textarea:focus {
+      border-color: var(--primary, #ff8a24);
+    }
+    .chat-send-btn {
+      border: none;
+      background: var(--primary, #ff8a24);
+      color: #fff;
+      border-radius: 12px;
+      padding: 10px 16px;
+      font-size: 13px;
+      cursor: pointer;
+      font-family: inherit;
+      height: 38px;
+    }
+    .chat-send-btn:disabled {
+      background: #c9b3ae;
+      cursor: default;
+    }
+    .companion-status {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+      color: var(--muted, #9a7b6a);
+      margin-bottom: 10px;
+    }
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #c9b3ae;
+      flex-shrink: 0;
+    }
+    .status-dot.ok {
+      background: #4caf50;
+    }
+    .status-dot.warn {
+      background: #ff9800;
+    }
+    .companion-form {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .companion-field {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+    .companion-field label {
+      font-size: 12px;
+      color: var(--muted, #9a7b6a);
+    }
+    .companion-field input,
+    .companion-field select {
+      border: 1px solid var(--accent, #ffc987);
+      border-radius: 10px;
+      padding: 8px 10px;
+      font-size: 13px;
+      font-family: inherit;
+      color: var(--text, #3a2a20);
+      background: var(--background, #fff7ed);
+      outline: none;
+      appearance: none;
+    }
+    .companion-field input:focus,
+    .companion-field select:focus {
+      border-color: var(--primary, #ff8a24);
+    }
+    .companion-actions {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+    .companion-save-btn {
+      border: none;
+      background: var(--primary, #ff8a24);
+      color: #fff;
+      border-radius: 10px;
+      padding: 9px 18px;
+      font-size: 13px;
+      cursor: pointer;
+      font-family: inherit;
+    }
+    .companion-save-btn:disabled {
+      background: #c9b3ae;
+      cursor: default;
+    }
+    .hint-text {
+      font-size: 11px;
+      color: var(--muted, #9a7b6a);
+      line-height: 1.5;
+    }
+    .fact-list {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      max-height: 200px;
+      overflow-y: auto;
+      margin-top: 8px;
+    }
+    .fact-list::-webkit-scrollbar {
+      width: 4px;
+    }
+    .fact-list::-webkit-scrollbar-thumb {
+      background: var(--accent, #ffc987);
+      border-radius: 2px;
+    }
+    .fact-item {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 8px;
+      background: var(--background, #fff7ed);
+      border-radius: 10px;
+      padding: 8px 10px;
+      font-size: 12px;
+      line-height: 1.45;
+    }
+    .fact-item .fact-weight {
+      font-size: 10px;
+      color: var(--muted, #9a7b6a);
+      flex-shrink: 0;
+    }
+    .fact-delete {
+      border: none;
+      background: transparent;
+      color: var(--muted, #9a7b6a);
+      cursor: pointer;
+      font-size: 14px;
+      line-height: 1;
+      padding: 0 2px;
+      font-family: inherit;
+    }
+    .fact-delete:hover {
+      color: var(--primary, #ff8a24);
+    }
+    .companion-metrics {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+    .companion-metric {
+      background: var(--background, #fff7ed);
+      border-radius: 12px;
+      padding: 10px;
+      text-align: center;
+    }
+    .companion-metric .metric-value {
+      font-size: 18px;
+      font-weight: 600;
+      color: var(--text, #3a2a20);
+    }
+    .companion-metric .metric-label {
+      font-size: 11px;
+      color: var(--muted, #9a7b6a);
+      margin-top: 3px;
+    }
+  </style>
+</head>
+<body>
+  <div id="dashboard">
+    <div class="card" style="position: relative; flex: 1; display: flex; flex-direction: column;">
+      <button class="close-btn" id="close-btn">×</button>
+      <div class="content-scroll">
+        <div class="header">
+          <div class="pet-avatar"><img id="pet-avatar" alt="小小闫" draggable="false"></div>
+          <div class="pet-info">
+            <h2 id="pet-name">桌宠</h2>
+            <p id="pet-personality">正在加载角色信息</p>
+          </div>
+        </div>
+
+        <div class="stats-grid">
+          <div class="stat-item">
+            <div class="stat-label">💕 关系</div>
+            <div class="stat-value" id="affection">0</div>
+            <div class="stat-tier" id="companion-tier">初识</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-label">😊 心情</div>
+            <div class="stat-value" id="mood">80</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-label">🎯 今日互动</div>
+            <div class="stat-value" id="today-interactions">0</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-label">⏰ 陪伴时长</div>
+            <div class="stat-value" id="companion-minutes">0<small>分钟</small></div>
+          </div>
+        </div>
+
+        <div class="relation-bars" id="relation-bars">
+          <div class="relation-bar">
+            <span class="relation-name">亲密</span>
+            <div class="relation-track"><div class="relation-fill" id="bar-intimacy"></div></div>
+            <span class="relation-num" id="num-intimacy">0</span>
+          </div>
+          <div class="relation-bar">
+            <span class="relation-name">活力</span>
+            <div class="relation-track"><div class="relation-fill energy" id="bar-energy"></div></div>
+            <span class="relation-num" id="num-energy">0</span>
+          </div>
+          <div class="relation-bar">
+            <span class="relation-name">信任</span>
+            <div class="relation-track"><div class="relation-fill trust" id="bar-trust"></div></div>
+            <span class="relation-num" id="num-trust">0</span>
+          </div>
+          <div class="relation-note" id="relation-note">关系会随着相处慢慢长起来</div>
+        </div>
+
+        <div class="key-gate" id="key-gate" hidden>
+          <div class="key-gate-icon">🔑</div>
+          <div class="key-gate-title">还没有配置 API Key</div>
+          <div class="key-gate-desc">
+            配好之后小小闫才能真正和你对话、记住你说的事。<br>
+            现在它只能用本地模板回应你。
+          </div>
+          <div class="key-gate-actions">
+            <button class="key-gate-btn primary" id="key-gate-fill" type="button">立即配置</button>
+            <button class="key-gate-btn" id="key-gate-env" type="button">用环境变量</button>
+          </div>
+          <div class="key-gate-hint" id="key-gate-hint" hidden></div>
+        </div>
+
+        <div class="chat-panel" id="chat-panel">
+          <div class="chat-panel-head">
+            <div class="chat-head-left">
+              <div class="chat-avatar-wrap">
+                <img id="chat-avatar" class="chat-avatar" alt="小小闫" draggable="false">
+              </div>
+              <div class="chat-head-info">
+                <div class="chat-head-name" id="chat-head-name">小小闫</div>
+                <div class="companion-status" id="companion-status">
+                  <span class="status-dot" id="companion-dot"></span>
+                  <span id="companion-status-text">正在检测…</span>
+                </div>
+              </div>
+            </div>
+            <div class="chat-head-metrics">
+              <div class="chat-metric">
+                <div class="chat-metric-value" id="companion-intimacy">0</div>
+                <div class="chat-metric-label">亲密</div>
+              </div>
+              <div class="chat-metric">
+                <div class="chat-metric-value" id="companion-mood">0</div>
+                <div class="chat-metric-label">心情</div>
+              </div>
+              <div class="chat-metric">
+                <div class="chat-metric-value" id="companion-turns">0</div>
+                <div class="chat-metric-label">轮数</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="chat-log" id="chat-log">
+            <div class="chat-empty" id="chat-empty">
+              <div class="chat-empty-emoji">💬</div>
+              <div class="chat-empty-title">还没有聊过天</div>
+              <div class="chat-empty-desc">跟小小闫说句话吧，它会记住你说过的事</div>
+              <div class="chat-suggestions">
+                <button class="chat-suggestion" type="button" data-text="你好呀，我们第一次说话">打个招呼</button>
+                <button class="chat-suggestion" type="button" data-text="你平时都在做什么呀？">问它做什么</button>
+                <button class="chat-suggestion" type="button" data-text="记住我正在准备考研">让它记住一件事</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="chat-input-row">
+            <textarea id="chat-text" maxlength="500" placeholder="跟小小闫说点什么…（Enter 发送，Shift+Enter 换行）"></textarea>
+            <button class="chat-send-btn" id="chat-send" type="button">发送</button>
+          </div>
+        </div>
+
+        <div class="settings-group">
+          <div class="section-title">✨ 互动</div>
+          <div class="interactions" id="interactions-list">
+          </div>
+        </div>
+
+        <div class="settings-group">
+          <div class="section-title">🧠 长期记忆</div>
+          <div class="hint-text">桌宠记住的关于你的事。记忆以纯文本存在本机，不上传云端。</div>
+          <div class="fact-list" id="fact-list"></div>
+        </div>
+
+        <div class="settings-group" id="config-group">
+          <div class="section-title clickable" id="config-toggle">🔧 伴侣配置 <span class="toggle-arrow" id="config-arrow">▾</span></div>
+          <div class="companion-form" id="config-body">
+            <div class="companion-field">
+              <label for="cfg-base-url">服务地址</label>
+              <input id="cfg-base-url" type="text" placeholder="https://api.deepseek.com">
+            </div>
+            <div class="companion-field">
+              <label for="cfg-model">模型</label>
+              <input id="cfg-model" type="text" placeholder="deepseek-v4-pro">
+            </div>
+            <div class="companion-field">
+              <label for="cfg-api-key">API Key<span id="cfg-api-key-state"></span></label>
+              <input id="cfg-api-key" type="password" placeholder="留空表示不修改">
+            </div>
+            <div class="companion-field">
+              <label for="cfg-effort">思考强度</label>
+              <select id="cfg-effort">
+                <option value="low">low · 快速省钱</option>
+                <option value="high">high · 均衡</option>
+                <option value="max">max · 最强推理</option>
+              </select>
+            </div>
+            <div class="companion-field">
+              <label for="cfg-persona">额外人设</label>
+              <input id="cfg-persona" type="text" placeholder="例如：喜欢熬夜写代码，提醒用户早睡">
+            </div>
+            <div class="companion-actions">
+              <button class="companion-save-btn" id="cfg-save" type="button">保存配置</button>
+              <span class="hint-text" id="cfg-save-hint"></span>
+            </div>
+            <div class="hint-text">也可以设置环境变量 <code>DEEPSEEK_API_KEY</code>，这样 Key 完全不落盘。</div>
+          </div>
+        </div>
+
+        <div class="settings-group">
+          <div class="section-title">⚙️ 设置</div>
+          <div class="setting-item">
+            <div>
+              <div class="setting-label">置顶显示</div>
+              <div class="setting-desc">桌宠窗口始终在最前面</div>
+            </div>
+            <div class="toggle active" id="toggle-always-on-top"></div>
+          </div>
+          <div class="setting-item">
+            <div>
+              <div class="setting-label">鼠标穿透</div>
+              <div class="setting-desc">点击穿透到后面的窗口</div>
+            </div>
+            <div class="toggle" id="toggle-click-through"></div>
+          </div>
+          <div class="setting-item">
+            <div>
+              <div class="setting-label">🎯 专注模式</div>
+              <div class="setting-desc">缩小并鼠标穿透，不打扰工作</div>
+            </div>
+            <div class="toggle" id="toggle-focus-mode"></div>
+          </div>
+          <div class="setting-item">
+            <div>
+              <div class="setting-label">桌宠大小</div>
+              <div class="setting-desc">当前：<span id="current-size">--</span></div>
+            </div>
+            <div class="size-selector" id="size-selector">
+              <button class="size-btn" data-scale="0.65">迷你</button>
+              <button class="size-btn" data-scale="0.8">小</button>
+              <button class="size-btn" data-scale="1">标准</button>
+              <button class="size-btn" data-scale="1.2">大</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

@@ -1,0 +1,85 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html, body {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: transparent !important;
+}
+
+#pet-container {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  position: relative;
+  cursor: pointer;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+#pet-sprite {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  pointer-events: none;
+  -webkit-user-drag: none;
+  transform-origin: bottom center;
+  transition: transform 0.1s ease-out;
+}
+
+.breathing {
+  animation: breathe var(--breath-period, 3.2s) ease-in-out infinite;
+}
+
+@keyframes breathe {
+  0%, 100% { transform: scale(1, 1); }
+  50% { transform: scale(var(--breath-scale-x, 1.012), var(--breath-scale-y, 1.022)); }
+}
+
+.squash {
+  animation: squash var(--squash-duration, 0.32s) ease-out;
+}
+
+@keyframes squash {
+  0% { transform: scale(1, 1); }
+  50% { transform: scale(calc(1 + var(--squash-intensity, 0.08)), calc(1 - var(--squash-intensity, 0.08))); }
+  100% { transform: scale(1, 1); }
+}
+
+#feedback-bubble {
+  position: absolute;
+  top: 8%;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 13px;
+  font-weight: 600;
+  color: #3B2E2B;
+  /* 无白底气泡：靠白色描边在任何壁纸上保持可读。
+     之前的 white-space: nowrap 会让长句单行溢出窗口被裁掉 —— 话说不全。 */
+  text-shadow:
+    -1px -1px 0 rgba(255, 255, 255, 0.95),
+    1px -1px 0 rgba(255, 255, 255, 0.95),
+    -1px 1px 0 rgba(255, 255, 255, 0.95),
+    1px 1px 0 rgba(255, 255, 255, 0.95),
+    0 0 6px rgba(255, 255, 255, 0.9),
+    0 1px 3px rgba(0, 0, 0, 0.25);
+  opacity: 0;
+  transition: opacity 0.3s ease, transform 0.3s ease;
+  pointer-events: none;
+  white-space: pre-wrap;
+  word-break: break-word;
+  max-width: calc(100% - 8px);
+  text-align: center;
+  line-height: 1.5;
+}
+
+#feedback-bubble.show {
+  opacity: 1;
+  transform: translateX(-50%) translateY(-10px);
+}
