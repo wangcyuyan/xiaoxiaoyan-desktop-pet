@@ -433,9 +433,10 @@ async function loadCompanionStatus(): Promise<void> {
     if (status.configured) {
       companionDot.className = 'status-dot ok';
       companionStatusText.textContent = `已连接 · ${status.model}`;
-      // 已配置则隐藏引导卡片
+      // 已配置则隐藏引导卡片。
+      // 注意：不自动收起配置区 —— 桥接让「已连接」成为常态，自动折叠
+      // 会把聊天方式调节（思考/温度/长度）藏起来，用户根本找不到。
       keyGate.hidden = true;
-      setConfigCollapsed(true);
     } else {
       companionDot.className = 'status-dot warn';
       companionStatusText.textContent = '未配置 API Key · 本地兜底模式';
@@ -614,11 +615,10 @@ cfgSave.addEventListener('click', async () => {
     cfgSaveHint.textContent = '已保存';
     await loadCompanionStatus();
     await loadCompanionConfig();
-    // 配好 Key 后给个明确反馈，并收起配置区
+    // 保存后不收起配置区 —— 用户常在这里连续调聊天方式（思考/温度/长度）
     const configured = await api.status();
     if (configured.configured) {
       keyGate.hidden = true;
-      setConfigCollapsed(true);
       cfgSaveHint.textContent = '已保存 · 已连接';
     } else {
       cfgSaveHint.textContent = '已保存，但仍未检测到 Key';

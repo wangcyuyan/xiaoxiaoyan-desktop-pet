@@ -58,7 +58,7 @@ test('引导卡片必须有 JS 逻辑：未配 Key 显示、配好隐藏', async
   assert.ok(script.includes('function focusConfig'), '缺少 focusConfig 跳转逻辑');
 });
 
-test('配置区必须可折叠，且未配 Key 时默认展开', async () => {
+test('配置区必须可折叠，且任何状态默认展开（自动折叠会把聊天方式调节藏起来）', async () => {
   const html = await read('src/renderer/dashboard/index.html');
   assert.ok(html.includes('id="config-toggle"'), '配置区缺少折叠开关');
   assert.ok(html.includes('id="config-arrow"'), '配置区缺少折叠箭头');
@@ -68,7 +68,9 @@ test('配置区必须可折叠，且未配 Key 时默认展开', async () => {
   const script = await read('src/renderer/dashboard/index.ts');
   assert.ok(script.includes('function setConfigCollapsed'), '缺少折叠控制函数');
   assert.ok(script.includes('setConfigCollapsed(false)'), '未配 Key 时未展开配置区');
-  assert.ok(script.includes('setConfigCollapsed(true)'), '配好后未收起配置区');
+  // 已连接（桥接常态）时不得自动收起 —— 否则思考/温度/长度控件会被藏起来
+  // 让用户找不到。折叠只应通过用户点击 config-toggle 触发。
+  assert.ok(!script.includes('setConfigCollapsed(true)'), '已连接/保存后不得自动收起配置区');
 });
 
 test('配置表单必须包含 API Key 输入框', async () => {
