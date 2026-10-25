@@ -87,10 +87,36 @@ function playClickTone(): void {
 // durationMs 决定停留时长：普通反馈 2 秒，伴侣主动搭话（心跳）要留久一点，
 // 否则用户一眨眼就错过了，桌宠"主动找你聊天"就等于没发生。
 let feedbackTimer: ReturnType<typeof setTimeout> | undefined;
+// 设置（由主进程推送 / 启动时拉取）：气泡字号倍率与语音朗读
+let bubbleScale = 1;
+let ttsEnabled = false;
+
+function applyBubbleScale(scale: number): void {
+  bubbleScale = scale;
+  document.documentElement.style.setProperty('--bubble-scale', String(scale));
+}
+
+/** 用系统语音朗读桌宠的话（开关在右键/托盘菜单）。 */
+function speakIfEnabled(text: string): void {
+  if (!ttsEnabled || !window.speechSynthesis) return;
+  try {
+    // 语音引擎读不了省略号和长空白，清一下
+    const clean = text.replace(/[…]+/g, '，').replace(/\s+/g, ' ').trim();
+    if (!clean) return;
+    const utterance = new SpeechSynthesisUtterance(clean);
+    utterance.lang = 'zh-CN';
+    utterance.rate = 1.05;
+    utterance.pitch = 1.1;
+    window.speechSynthesis.speak(utterance);
+  } catch {
+    // 无语音环境不影响气泡显示
+  }
+}
 
 function showFeedback(text: string, durationMs = 2000): void {
   feedbackBubble.textContent = text;
   feedbackBubble.classList.add('show');
+  speakIfEnabled(text);
   if (feedbackTimer) clearTimeout(feedbackTimer);
   feedbackTimer = setTimeout(() => {
     feedbackBubble.classList.remove('show');
@@ -329,6 +355,18 @@ window.petAPI?.companion?.onEvent((event: CompanionEvent) => {
 // 初始化
 async function init(): Promise<void> {
   try {
+    // 启动时拉一次设置（气泡字号 / TTS），之后靠主进程推送保持同步
+    void window.petAPI?.settings?.get().then((current) => {
+      if (!current) return;
+      applyBubbleScale(current.bubbleScale ?? 1);
+      ttsEnabled = current.ttsEnabled === true;
+    }).catch(() => {});
+    window.petAPI?.events?.onSettingsUpdated?.((next) => {
+      if (!next) return;
+      applyBubbleScale(next.bubbleScale ?? 1);
+      ttsEnabled = next.ttsEnabled === true;
+    });
+
     // 所有运行素材必须真实解码成功后才能报告 ready。
     const loadedAssets = await Promise.all(expectedAssetNames.map((name) => new Promise<HTMLImageElement>((resolve, reject) => {
       const url = assetMap.get(name);

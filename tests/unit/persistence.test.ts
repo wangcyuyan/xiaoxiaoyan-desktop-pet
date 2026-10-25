@@ -51,3 +51,31 @@ test('missing persistence files use defaults without a corrupt backup', async ()
     await rm(directory, { recursive: true, force: true });
   }
 });
+
+test('v2 设置字段（气泡字号/不透明度/锁位/TTS/快捷键）：旧存档不带也能读，带了必须合法', () => {
+  // 旧存档（v1 字段）—— 不带新字段，解析成功且不产生新键
+  const legacy = parseSettings({ ...defaults });
+  assert.equal('bubbleScale' in legacy, false);
+  assert.equal('lockPosition' in legacy, false);
+
+  // 新字段全部合法
+  const modern = parseSettings({
+    ...defaults,
+    bubbleScale: 1.5,
+    windowOpacity: 0.6,
+    lockPosition: true,
+    ttsEnabled: true,
+    hotkeyChatEnabled: false,
+  });
+  assert.equal(modern.bubbleScale, 1.5);
+  assert.equal(modern.windowOpacity, 0.6);
+  assert.equal(modern.lockPosition, true);
+  assert.equal(modern.ttsEnabled, true);
+  assert.equal(modern.hotkeyChatEnabled, false);
+
+  // 边界外一律拒绝
+  assert.throws(() => parseSettings({ ...defaults, bubbleScale: 0.2 }), /bubbleScale/);
+  assert.throws(() => parseSettings({ ...defaults, bubbleScale: 4 }), /bubbleScale/);
+  assert.throws(() => parseSettings({ ...defaults, windowOpacity: 0.05 }), /windowOpacity/);
+  assert.throws(() => parseSettings({ ...defaults, lockPosition: 'yes' }), /lockPosition/);
+});

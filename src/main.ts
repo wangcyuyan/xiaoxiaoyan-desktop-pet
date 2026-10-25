@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain, Menu, nativeImage, powerMonitor, powerSaveBlocker, screen, shell, Tray, type IpcMainInvokeEvent } from 'electron';
+import { app, BrowserWindow, globalShortcut, ipcMain, Menu, nativeImage, powerMonitor, powerSaveBlocker, screen, shell, Tray, type IpcMainInvokeEvent } from 'electron';
 import { copyFile, lstat, mkdir, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { createHash, randomUUID } from 'node:crypto';
@@ -13,6 +13,7 @@ import { TypingListener } from './main/typing-listener';
 import { localDateKey, nextReminderDelay, parsePersistedStats, parseReminders, parseSettings, type PersistedStats } from './main/data-validation';
 import { readValidatedJson } from './main/persistence';
 import { CompanionEngine } from './main/companion/engine';
+import { ForegroundCareMonitor } from './main/foreground-care';
 import { isConfigured } from './main/companion/api';
 import trayIconPath from './assets/tray/tray-icon.png';
 
@@ -134,6 +135,27 @@ function publicCompanionConfig(config: CompanionConfig) {
   return { ...rest, apiKeySet: Boolean(apiKey) };
 }
 
+let foregroundCare: ForegroundCareMonitor | undefined;
+
+/** 启动识屏关怀（白名单为空 = 不启动）。 */
+function startForegroundCare(): void {
+  const apps = spec.companion?.careApps ?? [];
+  if (apps.length === 0 || !spec.features.companionChat) return;
+  foregroundCare = new ForegroundCareMonitor({
+    apps,
+    onCare: (processName) => {
+      void logger?.write('info', 'foreground-care', { processName });
+      void companionEngine?.onForegroundCare(processName);
+    },
+  });
+  foregroundCare.start();
+}
+
+function stopForegroundCare(): void {
+  foregroundCare?.stop();
+  foregroundCare = undefined;
+}
+
 if (process.env.PET_E2E_USER_DATA) app.setPath('userData', path.resolve(process.env.PET_E2E_USER_DATA));
 
 const defaultSettings: Settings = {
@@ -142,6 +164,11 @@ const defaultSettings: Settings = {
   typingReaction: spec.features.typingReaction,
   clickThrough: false,
   petScale: spec.experience.petSizing.defaultScale,
+  bubbleScale: 1,
+  windowOpacity: 1,
+  lockPosition: false,
+  ttsEnabled: false,
+  hotkeyChatEnabled: true,
 };
 
 const defaultStats: PersistedStats = {
@@ -314,6 +341,28 @@ function applyPetSettings(): void {
   petWindow.setSize(size, size, false);
   petWindow.setAlwaysOnTop(settings.alwaysOnTop);
   petWindow.setIgnoreMouseEvents(settings.clickThrough, { forward: true });
+  petWindow.setOpacity(settings.windowOpacity ?? 1);
+}
+
+/** 向所有窗口广播设置变化（渲染层据此调气泡字号 / TTS 等）。 */
+function broadcastSettings(): void {
+  for (const window of [petWindow, reminderWindow, dashboardWindow]) {
+    if (window && !window.isDestroyed()) window.webContents.send('settings:updated', settings);
+  }
+}
+
+/** 全局快捷键：Alt+Shift+P 呼出聊天（可在菜单关掉）。 */
+const CHAT_HOTKEY = 'Alt+Shift+P';
+function syncChatHotkey(): void {
+  try {
+    globalShortcut.unregister(CHAT_HOTKEY);
+    if (settings.hotkeyChatEnabled !== false) {
+      const registered = globalShortcut.register(CHAT_HOTKEY, () => showDashboard(true));
+      if (!registered) void logger?.write('warn', 'chat-hotkey-register-failed', { accelerator: CHAT_HOTKEY });
+    }
+  } catch (error) {
+    void logger?.write('warn', 'chat-hotkey-error', { message: error instanceof Error ? error.message : String(error) });
+  }
 }
 
 function positionAbovePet(window: BrowserWindow): void {
@@ -485,6 +534,7 @@ function buildPetMenu(): Electron.MenuItemConstructorOptions[] {
   if (spec.features.reminders) items.push({ label: '⏰ 添加提醒', click: showReminderComposer });
   if (spec.features.dashboard) items.push({ label: `🏠 ${spec.character.displayName}的小屋`, click: () => showDashboard() });
   if (spec.features.filePocket) items.push({ label: '📁 打开文件口袋', click: () => void openPocket() });
+  items.push(...extraSettingMenuItems());
   items.push({ type: 'separator' });
   items.push({ label: settings.clickThrough ? '🖱️ 关闭鼠标穿透' : '🖱️ 开启鼠标穿透', click: () => void saveSettings({ ...settings, clickThrough: !settings.clickThrough }) });
   items.push({ label: '🙈 隐藏桌宠', click: () => petWindow?.hide() });
@@ -513,9 +563,47 @@ async function saveSettings(next: Settings): Promise<Settings> {
   settings = next;
   await atomicWriteJson(userFile('settings.json'), settings);
   applyPetSettings();
+  broadcastSettings();
+  syncChatHotkey();
   restartTypingListener();
   createTrayMenuRefresh();
   return settings;
+}
+
+/** 新设置相关的菜单段（右键菜单与托盘共用）：锁定位置 / 气泡字号 / 不透明度 / 语音 / 快捷键。 */
+function extraSettingMenuItems(): Electron.MenuItemConstructorOptions[] {
+  return [
+    { type: 'separator' },
+    {
+      label: settings.lockPosition ? '🔓 解锁位置' : '🔒 锁定位置',
+      click: () => { void saveSettings({ ...settings, lockPosition: !settings.lockPosition }); },
+    },
+    {
+      label: '💬 气泡字号',
+      submenu: [
+        { label: '小 (75%)', type: 'radio', checked: (settings.bubbleScale ?? 1) === 0.75, click: () => { void saveSettings({ ...settings, bubbleScale: 0.75 }); } },
+        { label: '标准 (100%)', type: 'radio', checked: (settings.bubbleScale ?? 1) === 1, click: () => { void saveSettings({ ...settings, bubbleScale: 1 }); } },
+        { label: '大 (150%)', type: 'radio', checked: (settings.bubbleScale ?? 1) === 1.5, click: () => { void saveSettings({ ...settings, bubbleScale: 1.5 }); } },
+        { label: '特大 (200%)', type: 'radio', checked: (settings.bubbleScale ?? 1) === 2, click: () => { void saveSettings({ ...settings, bubbleScale: 2 }); } },
+      ],
+    },
+    {
+      label: '🌫️ 不透明度',
+      submenu: [
+        { label: '30%', type: 'radio', checked: (settings.windowOpacity ?? 1) === 0.3, click: () => { void saveSettings({ ...settings, windowOpacity: 0.3 }); } },
+        { label: '60%', type: 'radio', checked: (settings.windowOpacity ?? 1) === 0.6, click: () => { void saveSettings({ ...settings, windowOpacity: 0.6 }); } },
+        { label: '100%', type: 'radio', checked: (settings.windowOpacity ?? 1) === 1, click: () => { void saveSettings({ ...settings, windowOpacity: 1 }); } },
+      ],
+    },
+    {
+      label: settings.ttsEnabled ? '🔊 关闭语音朗读' : '🔇 开启语音朗读',
+      click: () => { void saveSettings({ ...settings, ttsEnabled: !settings.ttsEnabled }); },
+    },
+    {
+      label: settings.hotkeyChatEnabled === false ? '⌨️ 开启聊天快捷键 (Alt+Shift+P)' : '⌨️ 关闭聊天快捷键 (Alt+Shift+P)',
+      click: () => { void saveSettings({ ...settings, hotkeyChatEnabled: settings.hotkeyChatEnabled === false }); },
+    },
+  ];
 }
 
 function createTrayMenuRefresh(): void {
@@ -524,6 +612,8 @@ function createTrayMenuRefresh(): void {
     { label: `🐾 显示${spec.character.displayName}`, click: () => petWindow?.show() },
     ...(spec.features.companionChat ? [{ label: '💬 和小小闫聊天', click: () => showDashboard(true) }] : []),
     { label: `🏠 ${spec.character.displayName}的小屋`, click: () => showDashboard() },
+    ...extraSettingMenuItems(),
+    { type: 'separator' },
     { label: settings.clickThrough ? '🖱️ 关闭鼠标穿透' : '🖱️ 开启鼠标穿透', click: () => void saveSettings({ ...settings, clickThrough: !settings.clickThrough }) },
     { type: 'separator' },
     { label: '🚪 退出', click: () => { isQuitting = true; app.quit(); } },
@@ -695,6 +785,7 @@ function registerIpc(): void {
   ipcMain.handle('window:drag-begin', (event) => {
     assertSender(event, ['pet']);
     if (!petWindow || !spec.features.drag) return;
+    if (settings.lockPosition) return; // 锁定位置：拖拽请求直接忽略
     dragSession = { bounds: petWindow.getBounds(), cursor: screen.getCursorScreenPoint() };
   });
   ipcMain.handle('window:drag-update', (event) => {
@@ -807,8 +898,11 @@ async function initialize(): Promise<void> {
   await logger.write('info', 'main-initializing', { platform: process.platform, arch: process.arch, version: spec.app.version, schemaVersion: spec.schemaVersion });
   createWindows();
   createTray();
+  syncChatHotkey();
   reminders.forEach(scheduleReminder);
   restartTypingListener();
+  // 识屏关怀：前台切到白名单应用时冒泡关心一句（好感度门控在 engine 侧）
+  startForegroundCare();
   // 置顶看门狗：全屏应用、Explorer 重启等场景会把置顶状态顶掉，
   // 每 30 秒自检一次，掉了就拉回来。
   setInterval(() => {
@@ -876,6 +970,8 @@ if (hasSingleInstanceLock) {
 app.on('window-all-closed', () => { /* tray app stays alive */ });
 app.on('before-quit', (event) => {
   isQuitting = true;
+  globalShortcut.unregisterAll();
+  stopForegroundCare();
   typingListener.stop();
   companionEngine?.stopHeartbeat();
   for (const timer of reminderTimers.values()) clearTimeout(timer);

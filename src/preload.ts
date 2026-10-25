@@ -61,6 +61,7 @@ const api: PetAPI = {
     onStats: (listener) => subscribe<PetStats>('pet:stats', listener),
     onTypingStatus: (listener) => subscribe<TypingStatus>('typing:status', listener),
     onFocusChat: (listener) => subscribe<void>('dashboard:focus-chat', listener),
+    onSettingsUpdated: (listener) => subscribe<Settings>('settings:updated', listener),
   },
 };
 

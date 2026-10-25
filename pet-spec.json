@@ -3,7 +3,7 @@
   "app": {
     "name": "小小闫桌宠",
     "appId": "com.xiaoxiaoyan.pet",
-    "version": "1.0.0",
+    "version": "1.1.0",
     "language": "zh-CN"
   },
   "targets": {
@@ -197,7 +197,19 @@
     "heartbeatEnabled": true,
     "heartbeatMinIntervalMs": 60000,
     "idleHeartbeatMs": 1800000,
-    "preventSuspension": false
+    "preventSuspension": false,
+    "careApps": [
+      "Code",
+      "idea",
+      "devenv",
+      "cursor",
+      "trae",
+      "idea64",
+      "webstorm",
+      "pycharm",
+      "WXWork",
+      "wps"
+    ]
   },
   "states": [
     {

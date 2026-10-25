@@ -615,6 +615,62 @@ export class CompanionEngine {
   }
 
   /**
+   * 识屏关怀：用户前台切到白名单应用（编辑器/办公软件）时冒泡关心一句。
+   * 每个应用每天最多一次、全局每天最多三次，且必须过好感度门控 ——
+   * 关怀不是骚扰，关系不够时不出声。
+   */
+  async onForegroundCare(processName: string): Promise<void> {
+    if (!this.config.heartbeatEnabled || !this.onHeartbeat) return;
+    const today = localDateKey();
+    const key = `${today}:care:${processName}`;
+    if (this.firedSlots.has(key)) return;
+    let caresToday = 0;
+    for (const slot of this.firedSlots) {
+      if (slot.startsWith(`${today}:care:`)) caresToday += 1;
+    }
+    if (caresToday >= 3) return;
+    this.firedSlots.add(key);
+    await this.persistFiredSlots();
+
+    const state = await this.getState();
+    if (!shouldSpeakProactively(state)) return;
+    const seed = `用户刚刚切到了一个应用（进程名 ${processName}，多半是在工作）。你注意到了，自然地关心一句，比如提醒休息或随口陪伴，就一句话，不要提「进程名」这种词。`;
+    try {
+      if (!isConfigured(this.config)) {
+        this.onHeartbeat({
+          content: localIdleFallback(state, this.spec),
+          degraded: true,
+          recalledCount: 0,
+          state,
+          error: '未配置 API Key',
+        });
+        return;
+      }
+      const injection = await this.memory.buildInjection(seed, { renew: false });
+      const systemPrompt = buildSystemPrompt(this.spec, this.config, state, injection.context, await this.refreshPersonaMd());
+      const completion = await complete(this.config, [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: seed },
+      ], { maxTokens: BUDGET.casualMaxTokens, reasoningEffort: '' });
+      await this.memory.appendTurn('assistant', completion.content);
+      this.onHeartbeat({
+        content: completion.content,
+        degraded: false,
+        recalledCount: injection.recalled.length,
+        state: { ...state },
+      });
+    } catch (error) {
+      this.onHeartbeat({
+        content: localIdleFallback(state, this.spec),
+        degraded: true,
+        recalledCount: 0,
+        state,
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
+  }
+
+  /**
    * 系统从睡眠唤醒后的补报。
    * 睡眠期间所有心跳时段都被跳过 —— 用户回到电脑前，不该面对一个
    * 一声不吭的桌宠。每天最多补一次，频繁合盖开盖不会刷屏。

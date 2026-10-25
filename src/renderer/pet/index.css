@@ -57,7 +57,8 @@ html, body {
   top: 8%;
   left: 50%;
   transform: translateX(-50%);
-  font-size: 13px;
+  /* 字号倍率由设置控制（50%–300%），渲染层通过 CSS 变量注入 */
+  font-size: calc(13px * var(--bubble-scale, 1));
   font-weight: 600;
   color: #3B2E2B;
   /* 无白底气泡：靠白色描边在任何壁纸上保持可读。

@@ -125,6 +125,16 @@ export interface Settings {
   typingReaction: boolean;
   clickThrough: boolean;
   petScale: number;
+  /** 气泡字号倍率 0.5–3（对齐 dsh-pet-indesktop 的 50%–300%） */
+  bubbleScale?: number;
+  /** 桌宠不透明度 0.1–1 */
+  windowOpacity?: number;
+  /** 锁定位置：开启后不可拖动 */
+  lockPosition?: boolean;
+  /** 用系统语音朗读桌宠的话（TTS） */
+  ttsEnabled?: boolean;
+  /** 全局快捷键 Alt+Shift+P 打开聊天 */
+  hotkeyChatEnabled?: boolean;
 }
 
 export interface Reminder {
@@ -196,6 +206,8 @@ export interface CompanionSpec {
   idleHeartbeatMs: number;
   /** 桌宠运行期间阻止系统休眠（默认关：多数人不希望挂着桌宠就永不睡眠）。唤醒补报始终开启。 */
   preventSuspension?: boolean;
+  /** 识屏关怀白名单：前台切到这些进程（子串匹配）时桌宠会冒泡关心一句。空数组=关闭。 */
+  careApps?: string[];
 }
 
 /** 运行时可修改的伴侣配置。API Key 永远不会回传到渲染层。 */
@@ -343,6 +355,7 @@ export interface PetAPI {
     onStats: (listener: (stats: PetStats) => void) => () => void;
     onTypingStatus: (listener: (status: TypingStatus) => void) => () => void;
     onFocusChat: (listener: () => void) => () => void;
+    onSettingsUpdated: (listener: (settings: Settings) => void) => () => void;
   };
 }
 
@@ -378,13 +391,19 @@ export function assertSettingsPatch(value: unknown): asserts value is Partial<Se
     throw new TypeError('Invalid settings patch');
   }
   const obj = value as Record<string, unknown>;
-  const booleanKeys = new Set(['edgeSnap', 'alwaysOnTop', 'typingReaction', 'clickThrough']);
-  const allowedKeys = new Set([...booleanKeys, 'petScale']);
+  const booleanKeys = new Set(['edgeSnap', 'alwaysOnTop', 'typingReaction', 'clickThrough', 'lockPosition', 'ttsEnabled', 'hotkeyChatEnabled']);
+  const allowedKeys = new Set([...booleanKeys, 'petScale', 'bubbleScale', 'windowOpacity']);
   for (const [key, item] of Object.entries(obj)) {
     if (!allowedKeys.has(key)) throw new TypeError(`Unknown settings field: ${key}`);
     if (booleanKeys.has(key) && typeof item !== 'boolean') throw new TypeError(`Invalid settings field: ${key}`);
     if (key === 'petScale' && (typeof item !== 'number' || !Number.isFinite(item) || ![0.65, 0.8, 1, 1.2].includes(item))) {
       throw new TypeError('Invalid settings field: petScale');
+    }
+    if (key === 'bubbleScale' && (typeof item !== 'number' || !Number.isFinite(item) || item < 0.5 || item > 3)) {
+      throw new TypeError('Invalid settings field: bubbleScale');
+    }
+    if (key === 'windowOpacity' && (typeof item !== 'number' || !Number.isFinite(item) || item < 0.1 || item > 1)) {
+      throw new TypeError('Invalid settings field: windowOpacity');
     }
   }
 }
