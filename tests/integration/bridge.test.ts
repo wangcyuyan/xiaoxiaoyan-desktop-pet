@@ -6,11 +6,14 @@ import { pickBridgeModel } from '../../src/main/companion/bridge';
  * 桥接模型选择回归测试。
  *
  * 背景：桌宠接本机 DSH 桥接后，模型列表里带 provider 前缀
- * （如 "trae/deepseek-v4.1-flash"）。要挑一个「最省」的模型用 ——
- * 陪伴场景下 Flash 档比 Pro 档快且便宜。
+ * （如 "trae/deepseek-v4.1-flash"）。
+ *
+ * v1.1.2 起策略为「智力优先」：Trae 通道（零成本）内 Pro 档先于
+ * Flash 档 —— 用户实测反馈 Flash 轻量档明显降智，且 Pro 走积分
+ * 同样零成本，智力体验优先于省积分。
  */
 
-test('优先挑 Flash 类模型', () => {
+test('Trae 通道内没有 Pro 时才挑 Flash', () => {
   const models = [
     'deepseek-official/deepseek-v4-pro',
     'trae/deepseek-v4.1-flash',
@@ -19,10 +22,9 @@ test('优先挑 Flash 类模型', () => {
   assert.equal(pickBridgeModel(models), 'trae/deepseek-v4.1-flash');
 });
 
-test('没有 Flash 时挑 Pro', () => {
+test('有 Pro 时挑 Pro（智力优先，含大小写不敏感）', () => {
   const models = ['deepseek-official/deepseek-flash-x', 'deepseek-official/deepseek-v4-pro'];
-  // 名字里带 flash 的仍然优先（大小写不敏感）
-  assert.equal(pickBridgeModel(models), 'deepseek-official/deepseek-flash-x');
+  assert.equal(pickBridgeModel(models), 'deepseek-official/deepseek-v4-pro');
 });
 
 test('只有 Pro 时挑 Pro', () => {

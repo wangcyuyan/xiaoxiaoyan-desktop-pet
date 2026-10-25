@@ -219,19 +219,22 @@ export async function discoverBridge(
 /**
  * 从桥接模型列表里挑一个合适的。
  *
- * 优先级：Trae 通道（积分计费，几乎零成本）> 其它通道；
- * 同通道内 Flash 类（快、便宜）> Pro 类 > 第一个。
- * 桥接的模型 id 形如 "provider/model"（如 trae/deepseek-v4.1-flash），
- * 聊天请求的 provider 就是从这个前缀解析的 —— 选错前缀就烧错钱。
+ * 优先级：Trae 通道（积分计费，零成本）> 其它通道；
+ * 同通道内 **Pro 档优先于 Flash** —— 用户实测反馈 Flash 轻量档明显降智，
+ * 智力体验优先于省钱（Pro 走积分依然零成本，只是烧得略快）。
+ * 前缀匹配时优先精确 "trae/" 通道而非 trae-vision 等变体。
  */
 export function pickBridgeModel(models: string[]): string | undefined {
   if (models.length === 0) return undefined;
   const lower = models.map((id) => ({ id, key: id.toLowerCase() }));
   const trae = lower.filter((item) => item.key.includes('trae'));
-  const pool = trae.length > 0 ? trae : lower;
-  const flash = pool.find((item) => item.key.includes('flash'));
-  if (flash) return flash.id;
+  let pool = trae.length > 0 ? trae : lower;
+  // 精确 trae/ 通道优先于 trae-vision / trae-global 等变体
+  const exact = pool.filter((item) => item.key.startsWith('trae/'));
+  if (exact.length > 0) pool = exact;
   const pro = pool.find((item) => item.key.includes('pro'));
   if (pro) return pro.id;
+  const flash = pool.find((item) => item.key.includes('flash'));
+  if (flash) return flash.id;
   return pool[0]?.id;
 }

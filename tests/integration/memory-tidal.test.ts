@@ -120,21 +120,26 @@ test('每日摘要支撑：turnsOfDate 按本地日期取轮次，markDailySumma
   assert.equal((await memory.snapshot()).lastDailySummaryFor, key);
 });
 
-test('桥接模型选择：有 Trae 通道时优先 Trae，没有才回落官方源', () => {
+test('桥接模型选择：Trae 通道优先且 Pro 智力档先于 Flash（用户反馈 Flash 降智）', () => {
+  assert.equal(
+    pickBridgeModel(['deepseek-official/deepseek-flash', 'trae/deepseek-v4.1-flash', 'trae/DeepSeek-V4-Pro-Official']),
+    'trae/DeepSeek-V4-Pro-Official',
+    'Trae 通道内 Pro 应优先于 Flash',
+  );
+  assert.equal(
+    pickBridgeModel(['trae-vision/DeepSeek-V4-Pro-Official', 'trae/DeepSeek-V4-Pro-Official']),
+    'trae/DeepSeek-V4-Pro-Official',
+    '精确 trae/ 通道应优先于 trae-vision 变体',
+  );
   assert.equal(
     pickBridgeModel(['deepseek-official/deepseek-flash', 'trae/deepseek-v4.1-flash']),
     'trae/deepseek-v4.1-flash',
-    'Trae 通道应优先于官方 flash',
-  );
-  assert.equal(
-    pickBridgeModel(['trae-enterprise/deepseek-v4-pro', 'deepseek-official/deepseek-flash']),
-    'trae-enterprise/deepseek-v4-pro',
-    'Trae 变体通道也应优先（哪怕只有 pro 档）',
+    'Trae 通道没有 Pro 时才回落 Flash',
   );
   assert.equal(
     pickBridgeModel(['deepseek-official/deepseek-flash', 'deepseek-account/deepseek-v4-pro']),
-    'deepseek-official/deepseek-flash',
-    '没有 Trae 时回落到 flash 档',
+    'deepseek-account/deepseek-v4-pro',
+    '没有 Trae 时同样 Pro 优先于 Flash',
   );
 });
 
